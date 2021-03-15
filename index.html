@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>three.js webgl - materials - car</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+    body {
+      color: #444;
+      background: #eee;
+    }
+
+    a {
+      color: #08f;
+    }
+
+    #info {
+      position: fixed;
+      top: 50px;
+    }
+
+    .colorPicker {
+      display: inline-block;
+      margin: 0 10px
+    }
+  </style>
+</head>
+
+<body>
+  <div id="info">
+    <span class="colorPicker"><input id="body-color" type="color" value="#ff0000"></input><br />Body</span>
+    <span class="colorPicker"><input id="details-color" type="color" value="#444"></input><br />Details</span>
+    <span class="colorPicker"><input id="glass-color" type="color" value="#444"></input><br />Glass</span>
+  </div>
+
+  <div id="container"></div>
+
+  <script type="module">
+
+    import * as THREE from '../build/three.module.js';
+
+    import Stats from './jsm/libs/stats.module.js';
+
+    import { OrbitControls } from './jsm/controls/OrbitControls.js';
+    import { RoomEnvironment } from './jsm/environments/RoomEnvironment.js';
+
+    import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+    import { DRACOLoader } from './jsm/loaders/DRACOLoader.js';
+
+    let camera, scene, renderer;
+    let stats;
+
+    let grid;
+    let controls;
+
+
+    function init() {
+
+      const container = document.getElementById('container');
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setAnimationLoop(render);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.85;
+      container.appendChild(renderer.domElement);
+
+      window.addEventListener('resize', onWindowResize);
+
+      stats = new Stats();
+      container.appendChild(stats.dom);
+
+      //
+
+      camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(4.25, 1.4, - 4.5);
+
+      controls = new OrbitControls(camera, container);
+      controls.target.set(0, 0.5, 0);
+      controls.update();
+
+      const environment = new RoomEnvironment();
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xeeeeee);
+      scene.environment = pmremGenerator.fromScene(environment).texture;
+      scene.fog = new THREE.Fog("#444", 10, 50);
+
+      grid = new THREE.GridHelper(100, 40, 0x000000, 0x000000);
+      grid.material.opacity = 0.1;
+      grid.material.depthWrite = false;
+      grid.material.transparent = true;
+      scene.add(grid);
+
+      // materials
+
+      const bodyMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xff0000, metalness: 0.6, roughness: 0.4, clearcoat: 0.05, clearcoatRoughness: 0.05
+      });
+
+      const detailsMaterial = new THREE.MeshStandardMaterial({
+        color: "#000", metalness: 1.0, roughness: 0.5
+      });
+
+      const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: "#000", metalness: 0, roughness: 0.1, transmission: 0.4, transparent: true
+      });
+
+      const bodyColorInput = document.getElementById('body-color');
+      bodyColorInput.addEventListener('input', function () {
+
+        bodyMaterial.color.set(this.value);
+
+      });
+
+      const detailsColorInput = document.getElementById('details-color');
+      detailsColorInput.addEventListener('input', function () {
+
+        detailsMaterial.color.set(this.value);
+
+      });
+
+      const glassColorInput = document.getElementById('glass-color');
+      glassColorInput.addEventListener('input', function () {
+
+        glassMaterial.color.set(this.value);
+
+      });
+
+      // Car
+
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('js/libs/draco/gltf/');
+
+      const loader = new GLTFLoader();
+      loader.setDRACOLoader(dracoLoader);
+
+      loader.load('./Enzo/Enzo/Enzo_out/compressed.gltf', function (gltf) {
+        const carModel = gltf.scene.children[0];
+        console.log(carModel);
+        carModel.children.forEach(x => {
+          if (x.material && x.material.name === "Car - Paint - Red") {
+            x.material = bodyMaterial;
+          }
+          if (x.material && x.material.name === "Car - Paint - Black") {
+            x.material = detailsMaterial;
+          }
+          if (x.material && x.material.name === "Clear-Glass") {
+            x.material = glassMaterial;
+          }
+          if (x.material && x.material.name === "Rims") {
+            x.material = detailsMaterial;
+          }
+          if (x.material && x.material.name === "Carbon-fiber") {
+            x.material = detailsMaterial;
+          }
+        });
+        scene.add(carModel);
+      });
+
+    }
+
+    function onWindowResize() {
+
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+    }
+
+    function render() {
+
+      renderer.render(scene, camera);
+      stats.update();
+
+    }
+
+    init();
+
+  </script>
+
+  <!-- Code injected by live-server -->
+  <script type="text/javascript">
+    // <![CDATA[  <-- For SVG support
+    if ('WebSocket' in window) {
+      (function () {
+        function refreshCSS() {
+          var sheets = [].slice.call(document.getElementsByTagName("link"));
+          var head = document.getElementsByTagName("head")[0];
+          for (var i = 0; i < sheets.length; ++i) {
+            var elem = sheets[i];
+            var parent = elem.parentElement || head;
+            parent.removeChild(elem);
+            var rel = elem.rel;
+            if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+              var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+              elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+            }
+            parent.appendChild(elem);
+          }
+        }
+        var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+        var address = protocol + window.location.host + window.location.pathname + '/ws';
+        var socket = new WebSocket(address);
+        socket.onmessage = function (msg) {
+          if (msg.data == 'reload') window.location.reload();
+          else if (msg.data == 'refreshcss') refreshCSS();
+        };
+        if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+          console.log('Live reload enabled.');
+          sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+        }
+      })();
+    }
+    else {
+      console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+    }
+	// ]]>
+  </script>
+</body>
+
+</html>
